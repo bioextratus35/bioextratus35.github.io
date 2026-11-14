@@ -51,13 +51,13 @@
   const inicio = $('inicio'), camera = $('camera'), cinema = $('cinema');
   const palco = $('palco'), mira = $('mira'), miraTexto = $('miraTexto');
   const carregando = $('carregando'), carregandoTexto = $('carregandoTexto');
-  const controlesAR = $('controlesAR'), progressoAR = $('progressoAR');
   const filmeAR = $('filmeAR'), filmeHD = $('filmeHD');
-  const fim = $('fim'), btnSom = $('btnSom');
+  const fim = $('fim');
 
   let modo = null;          // 'ar' | 'tela'
   let cena = null;          // <a-scene>
   let arRodando = false;
+  let cameraAtiva = false;   // false = ignorar eventos atrasados do rastreamento
   let alvoVisivel = false;
 
   /* ---------- Ambiente ---------- */
@@ -66,7 +66,7 @@
   const temCamera = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && window.isSecureContext;
   if (navegadorDeApp || !temCamera) $('avisoApp').classList.remove('escondido');
   if (!temCamera && !navegadorDeApp) {
-    $('avisoApp').innerHTML = '<strong>Este navegador não liberou a câmera.</strong>Abra o link no Safari (iPhone) ou no Chrome (Android), ou assista ao filme sem câmera.';
+    $('avisoApp').innerHTML = '<strong>Este navegador não liberou a câmera.</strong>Abra o link no Safari (iPhone) ou no Chrome (Android), ou toque em <b>Filme em tela cheia</b>.';
   }
 
   /* ---------- Bibliotecas (carregadas em segundo plano depois da landing) ---------- */
@@ -97,10 +97,9 @@
     const p = v.play();
     if (p && p.then) {
       p.then(() => { if (!v.dataset.tocar) v.pause(); })
-       .catch(() => { v.muted = true; atualizarBotaoSom(); });
+       .catch(() => { v.muted = true; });
     }
   }
-  function atualizarBotaoSom() { btnSom.classList.toggle('mudo', filmeAR.muted); }
 
   /* ---------- Cena AR ---------- */
   function criarCena() {
@@ -144,21 +143,17 @@
 
   function sistemaAR() { return cena && cena.systems['mindar-image-system']; }
 
-  async function iniciarCamera(m) {
-    modo = m;
-    // 1) dentro do gesto: desbloqueia o vídeo que vai tocar, com som
-    if (modo === 'ar') { prepararVideo(filmeAR, VIDEO_AR); desbloquear(filmeAR); }
-    else { prepararVideo(filmeHD, VIDEO_HD); desbloquear(filmeHD); }
+  async function iniciarCamera() {
+    modo = 'ar';
+    cameraAtiva = true;
+    // 1) dentro do gesto: desbloqueia o vídeo do AR, com som
+    prepararVideo(filmeAR, VIDEO_AR); desbloquear(filmeAR);
 
     inicio.classList.add('escondido');
     camera.classList.remove('escondido');
     carregando.classList.remove('oculta');
     mira.classList.remove('oculta');
-    controlesAR.classList.add('escondido');
-    progressoAR.classList.add('escondido');
-    miraTexto.textContent = modo === 'ar'
-      ? 'Enquadre o quadro inteiro na tela'
-      : 'Aponte para o quadro para abrir o filme';
+    miraTexto.textContent = 'Enquadre o quadro inteiro na tela';
     carregandoTexto.textContent = 'Preparando a câmera…';
 
     // 2) carrega libs (normalmente já estão em cache) e liga o rastreamento
@@ -168,7 +163,9 @@
       const tela = cena.querySelector('#telaAR');
       tela.setAttribute('visible', false);
       tela.setAttribute('material', 'opacity', 0);
+      zerarAncora();
       alvoVisivel = false;
+      cameraAtiva = true;
       sistemaAR().start();
     } catch (e) {
       console.error('Falha ao iniciar a câmera', e);
@@ -176,15 +173,22 @@
     }
   }
 
-  function pararCamera() {
-    try { if (arRodando) sistemaAR().stop(); } catch (e) {}
-    arRodando = false;
-    // o MindAR guarda a âncora como "visível" se parar com o quadro na tela;
-    // forçamos "perdido" para o próximo start disparar targetFound de novo.
+  // o MindAR guarda a âncora como "visível" se parar com o quadro na tela (ou se um
+  // último quadro processado chegar depois do stop); forçamos "perdido" para o
+  // próximo start disparar targetFound de novo.
+  function zerarAncora() {
     try {
       const ancora = cena && cena.querySelector('#alvo').components['mindar-image-target'];
       if (ancora && ancora.el.object3D.visible) ancora.updateWorldMatrix(null);
     } catch (e) {}
+  }
+
+  function pararCamera() {
+    cameraAtiva = false;
+    delete filmeAR.dataset.tocar;
+    try { if (arRodando) sistemaAR().stop(); } catch (e) {}
+    arRodando = false;
+    zerarAncora();
     alvoVisivel = false;
     filmeAR.pause();
   }
@@ -197,14 +201,9 @@
   }
 
   function aoEncontrar() {
+    if (!cameraAtiva) return;
     alvoVisivel = true;
     mira.classList.add('oculta');
-
-    if (modo === 'tela') {
-      // reconheceu o quadro → filme em tela cheia
-      abrirCinema({ motivo: 'reconhecido' });
-      return;
-    }
 
     const tela = cena.querySelector('#telaAR');
     tela.setAttribute('visible', true);
@@ -219,10 +218,7 @@
     // só mostra o plano quando já existe um frame decodificado (evita "piscar" preto)
     if (filmeAR.readyState >= 2) mostrar();
     else filmeAR.addEventListener('loadeddata', mostrar, { once: true });
-    filmeAR.play().catch(() => { filmeAR.muted = true; atualizarBotaoSom(); filmeAR.play().catch(() => {}); });
-
-    controlesAR.classList.remove('escondido');
-    progressoAR.classList.remove('escondido');
+    filmeAR.play().catch(() => { filmeAR.muted = true; filmeAR.play().catch(() => {}); });
   }
 
   function aoPerder() {
@@ -235,12 +231,8 @@
     miraTexto.textContent = 'Aponte de novo para o quadro';
   }
 
-  filmeAR.addEventListener('timeupdate', () => {
-    if (filmeAR.duration) progressoAR.firstElementChild.style.width = (filmeAR.currentTime / filmeAR.duration * 100) + '%';
-  });
-
   /* ---------- Cinema (tela cheia) ---------- */
-  function abrirCinema({ motivo, inicioEm = 0 } = {}) {
+  function abrirCinema({ motivo } = {}) {
     pararCamera();
     prepararVideo(filmeHD, VIDEO_HD);
     camera.classList.add('escondido');
@@ -249,10 +241,6 @@
     fim.classList.add('escondido');
     filmeHD.controls = true;
     filmeHD.dataset.tocar = '1';
-    if (inicioEm) {
-      const pular = () => { try { filmeHD.currentTime = inicioEm; } catch (e) {} };
-      if (filmeHD.readyState >= 1) pular(); else filmeHD.addEventListener('loadedmetadata', pular, { once: true });
-    }
     filmeHD.play().catch(() => {
       // sem permissão de som: toca mudo e o usuário liga o som nos controles
       filmeHD.muted = true;
@@ -263,6 +251,7 @@
 
   function fecharCinema() {
     filmeHD.pause();
+    filmeHD.currentTime = 0;
     delete filmeHD.dataset.tocar;
     cinema.classList.add('escondido');
     camera.classList.add('escondido');
@@ -272,29 +261,18 @@
   filmeHD.addEventListener('ended', () => { fim.classList.remove('escondido'); });
 
   /* ---------- Botões ---------- */
-  document.querySelectorAll('.escolha').forEach((b) => {
-    b.addEventListener('click', () => {
-      if (!temCamera) { abrirCinema({ motivo: 'sem-camera' }); return; }
-      iniciarCamera(b.dataset.modo);
-    });
+  // "O quadro ganha vida": câmera + AR (sem câmera disponível, cai no filme em tela cheia)
+  document.querySelector('[data-modo="ar"]').addEventListener('click', () => {
+    if (!temCamera) { abrirCinema({ motivo: 'sem-camera' }); return; }
+    iniciarCamera();
   });
-  $('btnSemCamera').addEventListener('click', () => abrirCinema({ motivo: 'escolha' }));
-  $('btnVoltar').addEventListener('click', () => {
+  // "Filme em tela cheia": toca direto, sem câmera
+  document.querySelector('[data-modo="tela"]').addEventListener('click', () => abrirCinema({ motivo: 'escolha' }));
+  // X da câmera: desliga a câmera e volta ao início
+  $('btnSairCamera').addEventListener('click', () => {
     pararCamera();
     camera.classList.add('escondido');
     inicio.classList.remove('escondido');
-  });
-  btnSom.addEventListener('click', () => {
-    filmeAR.muted = !filmeAR.muted;
-    if (!filmeAR.muted && alvoVisivel) filmeAR.play().catch(() => {});
-    atualizarBotaoSom();
-  });
-  $('btnRecomecar').addEventListener('click', () => {
-    filmeAR.currentTime = 0;
-    progressoAR.firstElementChild.style.width = '0';
-  });
-  $('btnExpandir').addEventListener('click', () => {
-    abrirCinema({ motivo: 'expandir', inicioEm: filmeAR.currentTime });
   });
   $('btnFecharCinema').addEventListener('click', fecharCinema);
   $('btnInicio').addEventListener('click', fecharCinema);
@@ -372,7 +350,7 @@
       window.MINDAR_FOVY = CONFIG.fov;
       const sis = sistemaAR();
       if (sis) { sis.filterMinCF = CONFIG.minCF; sis.filterBeta = CONFIG.beta; }
-      iniciarCamera('ar');
+      iniciarCamera();
     });
     $('cCopiar').addEventListener('click', () => {
       const s = escrever();

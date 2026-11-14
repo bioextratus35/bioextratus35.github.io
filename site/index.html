@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="estilo.css?v=2" />
+  <link rel="stylesheet" href="estilo.css?v=3" />
 </head>
 <body>
 
@@ -53,14 +53,15 @@
           </span>
           <span class="escolha-texto">
             <span class="escolha-titulo">Filme em tela cheia</span>
-            <span class="escolha-desc">Aponte para o quadro e o filme abre no seu celular.</span>
+            <span class="escolha-desc">Assista ao filme direto no seu celular.</span>
           </span>
         </button>
       </div>
 
-      <button id="btnSemCamera" class="link">Assistir sem câmera</button>
-
-      <div class="folhas" aria-hidden="true"><i></i><i></i><i></i></div>
+      <footer class="rodape">
+        <div class="folhas" aria-hidden="true"><i></i><i></i><i></i></div>
+        <a class="site-empresa" href="https://www.bioextratus.com.br" target="_blank" rel="noopener">www.bioextratus.com.br</a>
+      </footer>
     </div>
   </main>
 
@@ -79,24 +80,11 @@
     </div>
 
     <div class="barra-topo">
-      <button id="btnVoltar" class="redondo" aria-label="Voltar">
-        <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+      <button id="btnSairCamera" class="redondo" aria-label="Sair da câmera">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
     </div>
 
-    <div id="controlesAR" class="controles escondido">
-      <button id="btnSom" class="redondo" aria-label="Som">
-        <svg viewBox="0 0 24 24" class="ico-som"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" class="cheio"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>
-        <svg viewBox="0 0 24 24" class="ico-mudo"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" class="cheio"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>
-      </button>
-      <button id="btnRecomecar" class="redondo" aria-label="Recomeçar">
-        <svg viewBox="0 0 24 24"><path d="M5 12a7 7 0 1 0 2.1-5"/><path d="M5 4v4h4"/></svg>
-      </button>
-      <button id="btnExpandir" class="redondo" aria-label="Ver em tela cheia">
-        <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
-      </button>
-    </div>
-    <div id="progressoAR" class="progresso escondido"><i></i></div>
   </section>
 
   <!-- ===================== FILME EM TELA CHEIA ===================== -->
@@ -121,6 +109,6 @@
   <video id="filmeAR" playsinline webkit-playsinline crossorigin="anonymous" loop preload="none" muted
          style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none"></video>
 
-  <script src="app.js?v=2"></script>
+  <script src="app.js?v=3"></script>
 </body>
 </html>
