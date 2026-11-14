@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>Fio a Fio · Grupo Bio Extratus 35 anos</title>
+  <meta name="description" content="Aponte o celular para o quadro e veja a história de 35 anos ganhar vida, fio a fio." />
+  <meta name="theme-color" content="#f3ede2" />
+  <meta property="og:title" content="Fio a Fio · Somos feitos de nós." />
+  <meta property="og:description" content="Aponte o celular para o quadro e veja a história ganhar vida." />
+  <meta property="og:image" content="assets/poster.jpg" />
+  <link rel="icon" href="assets/icone.png" />
+  <link rel="apple-touch-icon" href="assets/icone.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="estilo.css?v=1" />
+</head>
+<body>
+
+  <!-- ===================== LANDING ===================== -->
+  <main id="inicio" class="tela">
+    <div class="inicio-conteudo">
+      <p class="kicker">Grupo Bio Extratus · 35 anos</p>
+      <h1>Fio a Fio</h1>
+      <span class="regua"></span>
+      <p class="lema">Somos feitos de nós.</p>
+
+      <div class="quadro-mini" aria-hidden="true">
+        <img src="assets/poster.jpg" alt="" />
+      </div>
+
+      <p class="convite">Aponte a câmera para o quadro e veja a história de 35 anos ganhar vida, fio a fio.</p>
+
+      <div id="avisoApp" class="aviso escondido" role="note">
+        <strong>Abra no navegador para usar a câmera.</strong>
+        Toque em <b>⋯</b> no canto da tela e escolha <b>“Abrir no navegador”</b> (Safari ou Chrome).
+      </div>
+
+      <div class="escolhas">
+        <button class="escolha principal" data-modo="ar">
+          <span class="escolha-icone" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><rect x="8.5" y="7" width="7" height="10" rx="1"/></svg>
+          </span>
+          <span class="escolha-texto">
+            <span class="escolha-titulo">O quadro ganha vida</span>
+            <span class="escolha-desc">Realidade aumentada: o filme acontece em cima do quadro.</span>
+          </span>
+        </button>
+        <button class="escolha" data-modo="tela">
+          <span class="escolha-icone" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><rect x="6.5" y="3" width="11" height="18" rx="2"/><path d="M10.5 9.2v5.6l4.4-2.8z" class="cheio"/></svg>
+          </span>
+          <span class="escolha-texto">
+            <span class="escolha-titulo">Filme em tela cheia</span>
+            <span class="escolha-desc">Aponte para o quadro e o filme abre no seu celular.</span>
+          </span>
+        </button>
+      </div>
+
+      <button id="btnSemCamera" class="link">Assistir sem câmera</button>
+
+      <div class="folhas" aria-hidden="true"><i></i><i></i><i></i></div>
+    </div>
+  </main>
+
+  <!-- ===================== CÂMERA / AR ===================== -->
+  <section id="camera" class="tela escondido" aria-label="Câmera">
+    <div id="palco"></div>
+
+    <div id="mira" class="mira">
+      <div class="mira-moldura"><i></i><i></i><i></i><i></i></div>
+      <p id="miraTexto">Enquadre o quadro inteiro na tela</p>
+    </div>
+
+    <div id="carregando" class="carregando">
+      <div class="novelo"></div>
+      <p id="carregandoTexto">Preparando a câmera…</p>
+    </div>
+
+    <div class="barra-topo">
+      <button id="btnVoltar" class="redondo" aria-label="Voltar">
+        <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+    </div>
+
+    <div id="controlesAR" class="controles escondido">
+      <button id="btnSom" class="redondo" aria-label="Som">
+        <svg viewBox="0 0 24 24" class="ico-som"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" class="cheio"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>
+        <svg viewBox="0 0 24 24" class="ico-mudo"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" class="cheio"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>
+      </button>
+      <button id="btnRecomecar" class="redondo" aria-label="Recomeçar">
+        <svg viewBox="0 0 24 24"><path d="M5 12a7 7 0 1 0 2.1-5"/><path d="M5 4v4h4"/></svg>
+      </button>
+      <button id="btnExpandir" class="redondo" aria-label="Ver em tela cheia">
+        <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+      </button>
+    </div>
+    <div id="progressoAR" class="progresso escondido"><i></i></div>
+  </section>
+
+  <!-- ===================== FILME EM TELA CHEIA ===================== -->
+  <section id="cinema" class="tela escondido" aria-label="Filme">
+    <video id="filmeHD" playsinline webkit-playsinline preload="none" poster="assets/poster.jpg"></video>
+    <div class="barra-topo">
+      <button id="btnFecharCinema" class="redondo claro" aria-label="Fechar">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div id="fim" class="fim escondido">
+      <p class="kicker">Grupo Bio Extratus · 35 anos</p>
+      <p class="fim-titulo">Somos feitos de nós.</p>
+      <div class="fim-botoes">
+        <button id="btnRever" class="botao">Assistir de novo</button>
+        <button id="btnInicio" class="link claro">Voltar ao início</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Vídeo usado como textura no AR (fica fora da cena, referenciado por #filmeAR) -->
+  <video id="filmeAR" playsinline webkit-playsinline crossorigin="anonymous" loop preload="none" muted
+         style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none"></video>
+
+  <script src="app.js?v=1"></script>
+</body>
+</html>
