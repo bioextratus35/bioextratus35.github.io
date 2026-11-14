@@ -31,7 +31,8 @@ ffmpeg -i MASTER.mp4 -c:v libx264 -profile:v high -level 4.1 -preset slow -b:v 4
 Se a arte impressa mudar, troque `site/assets/alvo_quadro.png` e recompile o `quadro.mind`.
 
 ## Publicação (GitHub Pages — gratuito)
-Site: https://btovero.github.io/fio-a-fio/ · Repositório: https://github.com/btovero/fio-a-fio
+Site: https://bioextratus35.github.io/ · Repositório: https://github.com/bioextratus35/bioextratus35.github.io
+(organização gratuita `bioextratus35`; o nome do repositório `bioextratus35.github.io` é o que faz o site ficar na raiz do endereço — não renomeie, senão o endereço do QR quebra)
 
 Para atualizar, basta commitar e enviar; o GitHub Actions publica a pasta `site/` sozinho:
 ```bash
