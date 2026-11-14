@@ -30,9 +30,16 @@ ffmpeg -i MASTER.mp4 -c:v libx264 -profile:v high -level 4.1 -preset slow -b:v 4
 ```
 Se a arte impressa mudar, troque `site/assets/alvo_quadro.png` e recompile o `quadro.mind`.
 
-## Deploy (fly.io)
+## Publicação (GitHub Pages — gratuito)
+Site: https://btovero.github.io/fio-a-fio/ · Repositório: https://github.com/btovero/fio-a-fio
+
+Para atualizar, basta commitar e enviar; o GitHub Actions publica a pasta `site/` sozinho:
 ```bash
-fly launch --no-deploy --copy-config   # só na primeira vez (cria o app)
-fly deploy
+git add -A
+git commit -m "Atualiza site"
+git push
 ```
-Domínio próprio: `fly certs add seu-dominio.com.br` e aponte o DNS. Gere o QR **com a URL final**.
+Limites: arquivos até 100 MB, cerca de 100 GB de banda por mês (≈ 1.500 visualizações completas).
+Domínio próprio: Settings → Pages → Custom domain, e aponte o DNS. Gere o QR **com a URL final**.
+
+(Os arquivos `Dockerfile`, `nginx.conf` e `fly.toml` continuam aqui caso um dia queira voltar ao fly.io, que exige cartão.)
