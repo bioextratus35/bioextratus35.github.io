@@ -19,6 +19,34 @@
   const PLANO_LARGURA = 1;
   const PLANO_ALTURA = 1680 / 941; // 1.78533
 
+  /* ---------- Ajustes de precisão do rastreamento ----------
+   * Valores padrão; podem ser testados no celular pela URL, ex.: ?fov=60&beta=500
+   * e, no modo ?calibrar=1, com controles deslizantes na tela.
+   *  fov   — campo de visão vertical (graus) assumido para a câmera. O MindAR usa 45°,
+   *          mas a câmera principal dos celulares em pé tem ~60–70°; com o valor errado
+   *          os cantos "escorregam" quando o quadro é visto de lado.
+   *  res   — resolução pedida à câmera (lado maior). Mais pixels = cantos mais precisos.
+   *  minCF/beta — filtro One Euro: minCF baixo = parado mais estável;
+   *          beta alto = acompanha o movimento sem atraso.
+   *  sx/sy/dx/dy — ajuste fino do plano sobre o quadro impresso (escala e deslocamento,
+   *          em unidades da largura do quadro: 0,001 ≈ 0,4 mm no quadro de 42 cm).
+   */
+  const URLP = new URLSearchParams(location.search);
+  const num = (k, padrao) => { const v = parseFloat(URLP.get(k)); return Number.isFinite(v) ? v : padrao; };
+  const CONFIG = {
+    fov: num('fov', 63),
+    res: num('res', 1280),
+    minCF: num('minCF', 0.001),
+    beta: num('beta', 1000),
+    sx: num('sx', 1), sy: num('sy', 1), dx: num('dx', 0), dy: num('dy', 0),
+  };
+  const CALIBRAR = URLP.has('calibrar');
+  window.MINDAR_FOVY = CONFIG.fov;
+  if (CONFIG.res > 0) {
+    // pede HD; o navegador entrega a mais próxima que a câmera suportar
+    window.MINDAR_VIDEO = { width: { ideal: CONFIG.res }, height: { ideal: Math.round(CONFIG.res * 9 / 16) } };
+  }
+
   const $ = (id) => document.getElementById(id);
   const inicio = $('inicio'), camera = $('camera'), cinema = $('cinema');
   const palco = $('palco'), mira = $('mira'), miraTexto = $('miraTexto');
@@ -52,8 +80,8 @@
   }
   function carregarLibs() {
     if (!libs) {
-      libs = carregarScript('vendor/aframe.min.js')
-        .then(() => carregarScript('vendor/mindar-image-aframe.prod.js'));
+      libs = carregarScript('vendor/aframe.min.js?v=2')
+        .then(() => carregarScript('vendor/mindar-image-aframe.prod.js?v=2'));
       libs.catch(() => { libs = null; });
     }
     return libs;
@@ -80,7 +108,7 @@
     palco.innerHTML = `
       <a-scene
         mindar-image="imageTargetSrc: ${ALVO}; autoStart: false; uiLoading: no; uiScanning: no; uiError: no;
-                      filterMinCF: 0.0001; filterBeta: 0.001; missTolerance: 10; warmupTolerance: 3"
+                      filterMinCF: ${CONFIG.minCF}; filterBeta: ${CONFIG.beta}; missTolerance: 10; warmupTolerance: 3"
         color-space="sRGB"
         renderer="colorManagement: true; antialias: true; precision: medium; alpha: true"
         vr-mode-ui="enabled: false"
@@ -89,7 +117,8 @@
         embedded>
         <a-camera position="0 0 0" look-controls="enabled: false" wasd-controls="enabled: false"></a-camera>
         <a-entity id="alvo" mindar-image-target="targetIndex: 0">
-          <a-plane id="telaAR" width="${PLANO_LARGURA}" height="${PLANO_ALTURA}" position="0 0 0.001"
+          <a-plane id="telaAR" width="${PLANO_LARGURA * CONFIG.sx}" height="${PLANO_ALTURA * CONFIG.sy}"
+                   position="${CONFIG.dx} ${CONFIG.dy} 0.001"
                    material="shader: flat; src: #filmeAR; transparent: true; opacity: 0; side: front"
                    visible="false"></a-plane>
         </a-entity>
@@ -179,8 +208,14 @@
 
     const tela = cena.querySelector('#telaAR');
     tela.setAttribute('visible', true);
+    const mostrar = () => { if (alvoVisivel) fade(calib.opacidade, 250); };
+    if (calib.congelar) {
+      // calibração: vídeo parado no 1º frame (= arte impressa) para comparar os cantos
+      filmeAR.pause(); filmeAR.currentTime = 0;
+      if (filmeAR.readyState >= 2) mostrar(); else filmeAR.addEventListener('loadeddata', mostrar, { once: true });
+      return;
+    }
     filmeAR.dataset.tocar = '1';
-    const mostrar = () => { if (alvoVisivel) fade(1, 250); };
     // só mostra o plano quando já existe um frame decodificado (evita "piscar" preto)
     if (filmeAR.readyState >= 2) mostrar();
     else filmeAR.addEventListener('loadeddata', mostrar, { once: true });
@@ -268,6 +303,84 @@
     filmeHD.currentTime = 0;
     filmeHD.play().catch(() => {});
   });
+
+  /* ---------- Modo calibração (?calibrar=1) ----------
+   * Para ajustar no quadro REAL: vídeo semitransparente parado no 1º frame,
+   * controles de escala/deslocamento (ao vivo) e de FOV/filtro (reiniciam a câmera).
+   * No fim, mostra os valores para fixar como padrão no app.js.
+   */
+  const calib = { opacidade: 1, congelar: false };
+  if (CALIBRAR) {
+    calib.opacidade = 0.5; calib.congelar = true;
+    const painel = document.createElement('div');
+    painel.className = 'calib';
+    const campos = [
+      ['opacidade', 'Transparência', 0.1, 1, 0.05, () => calib.opacidade],
+      ['sx', 'Escala largura', 0.95, 1.05, 0.001, () => CONFIG.sx],
+      ['sy', 'Escala altura', 0.95, 1.05, 0.001, () => CONFIG.sy],
+      ['dx', 'Desloc. horiz.', -0.05, 0.05, 0.001, () => CONFIG.dx],
+      ['dy', 'Desloc. vert.', -0.05, 0.05, 0.001, () => CONFIG.dy],
+      ['fov', 'FOV câmera (°) *', 40, 85, 1, () => CONFIG.fov],
+      ['minCF', 'Filtro parado *', 0.00001, 0.01, 0.00001, () => CONFIG.minCF],
+      ['beta', 'Filtro movimento *', 0, 3000, 10, () => CONFIG.beta],
+    ];
+    painel.innerHTML = `
+      <div class="calib-topo"><label><input type="checkbox" id="cCongelar" checked> Congelar no 1º frame</label>
+        <button id="cRecolher" type="button">Recolher ▾</button></div>
+      ${campos.map(([k, rot, mi, ma, st, v]) => `
+        <label class="calib-linha"><span>${rot}</span>
+          <input type="range" data-k="${k}" min="${mi}" max="${ma}" step="${st}" value="${v()}">
+          <output id="o_${k}">${v()}</output></label>`).join('')}
+      <div class="calib-botoes"><button id="cAplicar">Aplicar * (reinicia câmera)</button><button id="cCopiar">Copiar valores</button></div>
+      <code id="cValores"></code>`;
+    camera.appendChild(painel);
+
+    const escrever = () => {
+      const s = `fov=${CONFIG.fov}&minCF=${CONFIG.minCF}&beta=${CONFIG.beta}&sx=${CONFIG.sx}&sy=${CONFIG.sy}&dx=${CONFIG.dx}&dy=${CONFIG.dy}`;
+      const v = palco.querySelector('video');
+      $('cValores').textContent = s + (v ? `  · câmera ${v.videoWidth}x${v.videoHeight}` : '');
+      return s;
+    };
+    const aplicarPlano = () => {
+      const tela = cena && cena.querySelector('#telaAR');
+      if (!tela) return;
+      tela.setAttribute('width', PLANO_LARGURA * CONFIG.sx);
+      tela.setAttribute('height', PLANO_ALTURA * CONFIG.sy);
+      tela.setAttribute('position', `${CONFIG.dx} ${CONFIG.dy} 0.001`);
+      if (alvoVisivel) tela.setAttribute('material', 'opacity', calib.opacidade);
+    };
+    painel.addEventListener('input', (e) => {
+      const k = e.target.dataset.k;
+      if (k) {
+        const v = parseFloat(e.target.value);
+        if (k === 'opacidade') calib.opacidade = v; else CONFIG[k] = v;
+        $('o_' + k).textContent = v;
+        aplicarPlano(); escrever();
+      }
+      if (e.target.id === 'cCongelar') {
+        calib.congelar = e.target.checked;
+        if (!calib.congelar && alvoVisivel) { filmeAR.dataset.tocar = '1'; filmeAR.play().catch(() => {}); }
+        if (calib.congelar) { filmeAR.pause(); filmeAR.currentTime = 0; }
+      }
+    });
+    $('cRecolher').addEventListener('click', () => {
+      const r = painel.classList.toggle('recolhido');
+      $('cRecolher').textContent = r ? 'Ajustes ▴' : 'Recolher ▾';
+    });
+    $('cAplicar').addEventListener('click', () => {
+      pararCamera();
+      window.MINDAR_FOVY = CONFIG.fov;
+      const sis = sistemaAR();
+      if (sis) { sis.filterMinCF = CONFIG.minCF; sis.filterBeta = CONFIG.beta; }
+      iniciarCamera('ar');
+    });
+    $('cCopiar').addEventListener('click', () => {
+      const s = escrever();
+      (navigator.clipboard ? navigator.clipboard.writeText(s) : Promise.reject()).then(
+        () => { $('cCopiar').textContent = 'Copiado!'; }, () => { $('cCopiar').textContent = 'Selecione o texto abaixo'; });
+    });
+    setInterval(escrever, 1000);
+  }
 
   /* ---------- Bateria: pausa quando a aba sai de foco ---------- */
   document.addEventListener('visibilitychange', () => {
